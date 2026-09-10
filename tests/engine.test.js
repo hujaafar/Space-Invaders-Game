@@ -153,3 +153,10 @@ test('fire is inert in idle, introduction, pause, and terminal states', () => {
   game.waveIntro = 0; game.pause(); game.fire(); assert.equal(game.shots, 0);
   game.resume(); game.finish(false); game.fire(); assert.equal(game.shots, 0);
 });
+
+test('returning to the hangar releases entities and remains restartable', () => {
+  const game = ready(); advance(game, .2, { fire: true }); game.burst(100, 100);
+  game.returnToHangar(); assert.equal(game.state, 'idle'); assert.equal(game.player, null);
+  assert.equal(game.bullets.length + game.enemies.length + game.particles.length, 0);
+  assert.deepEqual(game.drainEvents(), []); game.start(); assert.equal(game.enemies.length, 24);
+});

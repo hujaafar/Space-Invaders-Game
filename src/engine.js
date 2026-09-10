@@ -75,6 +75,12 @@ export class SpaceInvaders {
     this.emit('wave', { wave: this.wave });
   }
 
+  returnToHangar() {
+    this.state = 'idle';
+    this.enemies = []; this.bullets = []; this.particles = []; this.events = [];
+    this.boss = null; this.player = null; this.previousState = null;
+  }
+
   pause() {
     if (this.state !== 'playing' && this.state !== 'wave-clear') return false;
     this.previousState = this.state;

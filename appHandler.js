@@ -104,7 +104,9 @@ function resume() {
 }
 function hangar() {
   stopClock(); clearInput(); setDialog(false);
-  game.state = 'idle'; shell.dataset.state = 'idle';
+  game.returnToHangar(); shell.dataset.state = 'idle';
+  for (const node of nodes.values()) node.remove();
+  nodes.clear(); shell.classList.remove('hit');
   $('start-screen').hidden = false; $('play-screen').hidden = true;
   $('launch-button').focus({ preventScroll: true });
   shell.scrollIntoView({ behavior: reducedMotion.matches ? 'instant' : 'smooth', block: 'start' });
