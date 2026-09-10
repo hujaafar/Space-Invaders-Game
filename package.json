@@ -10,7 +10,9 @@
     "build": "node scripts/build.mjs",
     "preview": "node scripts/serve.mjs dist",
     "test": "node --test",
-    "check": "node --check appHandler.js && node --check src/engine.js && node --check src/audio.js && node --check src/storage.js && node --check scripts/build.mjs && node --check scripts/serve.mjs"
+    "check": "node scripts/check.mjs"
   },
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  }
 }
