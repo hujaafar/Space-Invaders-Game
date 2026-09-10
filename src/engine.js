@@ -1,11 +1,12 @@
 /** Pure simulation: no DOM, wall clock, audio, timers, or animation callbacks. */
+import { impactTime } from './collision.js';
+export { overlaps } from './collision.js';
 export const WORLD = Object.freeze({ width: 900, height: 490, waves: 5 });
 export const DIFFICULTIES = Object.freeze({
   rookie: Object.freeze({ speed: .75, fireRate: 1.4, bulletSpeed: .8, seconds: 90, score: .75, bossHP: 26 }),
   pilot: Object.freeze({ speed: 1, fireRate: 1, bulletSpeed: 1, seconds: 75, score: 1, bossHP: 36 }),
   ace: Object.freeze({ speed: 1.3, fireRate: .75, bulletSpeed: 1.2, seconds: 65, score: 1.5, bossHP: 46 }),
 });
-export const overlaps = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 
 export class SpaceInvaders {
@@ -180,14 +181,15 @@ export class SpaceInvaders {
 
   moveBullets(dt) {
     for (const bullet of this.bullets) {
-      const oldY = bullet.y;
+      const oldX = bullet.x, oldY = bullet.y;
       bullet.x += bullet.vx * dt;
       bullet.y += bullet.vy * dt;
-      // Swept vertical bounds catch targets crossed between frames, even by a fast laser.
-      const sweep = { ...bullet, y: Math.min(oldY, bullet.y), h: bullet.h + Math.abs(oldY - bullet.y) };
+      // Continuous contact follows the entire path, including diagonal boss projectiles.
+      const contact = target => impactTime({ ...bullet, x: oldX, y: oldY }, { x: bullet.x - oldX, y: bullet.y - oldY }, target);
       if (bullet.owner === 'player') {
         const targets = this.boss ? [this.boss] : this.enemies;
-        const target = targets.filter(enemy => enemy.hp > 0 && overlaps(sweep, enemy)).sort((a, b) => b.y - a.y)[0];
+        const target = targets.filter(enemy => enemy.hp > 0).map(enemy => ({ enemy, time: contact(enemy) }))
+          .filter(hit => hit.time !== null).sort((a, b) => a.time - b.time)[0]?.enemy;
         if (target) {
           bullet.dead = true;
           target.hp--;
@@ -203,7 +205,7 @@ export class SpaceInvaders {
             this.burst(target.x + target.w / 2, target.y + target.h / 2);
           }
         }
-      } else if (overlaps(sweep, this.player)) {
+      } else if (contact(this.player) !== null) {
         bullet.dead = true;
         this.hitPlayer();
         if (this.state !== 'playing') return;
