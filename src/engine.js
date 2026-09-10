@@ -9,8 +9,9 @@ export const overlaps = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 
 export class SpaceInvaders {
-  constructor({ random = Math.random } = {}) {
+  constructor({ random = Math.random, cosmeticRandom = Math.random } = {}) {
     this.random = random;
+    this.cosmeticRandom = cosmeticRandom;
     this.sequence = 0;
     this.state = 'idle';
     this.events = [];
@@ -100,9 +101,9 @@ export class SpaceInvaders {
 
   burst(x, y, color = '#d2f86f', count = 12) {
     for (let i = 0; i < count; i++) {
-      const angle = this.random() * Math.PI * 2;
-      const speed = 40 + this.random() * 110;
-      this.particles.push(this.entity({ kind: 'particle', x, y, w: 2 + this.random() * 3, h: 3, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: .35 + this.random() * .3, color }));
+      const angle = this.cosmeticRandom() * Math.PI * 2;
+      const speed = 40 + this.cosmeticRandom() * 110;
+      this.particles.push(this.entity({ kind: 'particle', x, y, w: 2 + this.cosmeticRandom() * 3, h: 3, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: .35 + this.cosmeticRandom() * .3, color }));
     }
     // Bound cosmetic work even during long, high-scoring sessions.
     if (this.particles.length > 160) this.particles.splice(0, this.particles.length - 160);

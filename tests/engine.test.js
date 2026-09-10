@@ -134,3 +134,10 @@ test('negative and nonfinite time deltas cannot corrupt game state', () => {
   const game = ready(); const before = snapshot(game);
   game.step(NaN); game.step(-4); game.step(Infinity); assert.equal(snapshot(game), before);
 });
+
+test('particle generation never consumes the enemy targeting random stream', () => {
+  let calls = 0;
+  const game = new SpaceInvaders({ random: () => { calls++; return .5; }, cosmeticRandom: () => .5 });
+  game.start(); game.waveIntro = 0; game.burst(100, 100, '#fff', 30);
+  assert.equal(calls, 0); game.enemyFire = 0; game.step(.01); assert.equal(calls, 1);
+});
