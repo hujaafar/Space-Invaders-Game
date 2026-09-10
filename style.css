@@ -388,3 +388,5 @@ nav { display: flex; gap: 36px; }
   .scroll-progress, .status-dot { background: Highlight; }
   .game-overlay { background: Canvas; }
 }
+
+.hud strong, .personal-best strong, .result-stats dd { font-variant-numeric: tabular-nums; }
