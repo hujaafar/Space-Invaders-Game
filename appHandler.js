@@ -299,7 +299,12 @@ if ('IntersectionObserver' in window) {
   document.querySelectorAll('.reveal').forEach(element => revealObserver.observe(element));
   const sectionObserver = new IntersectionObserver(entries => {
     for (const entry of entries) if (entry.isIntersecting) {
-      document.querySelectorAll('.nav-link').forEach(link => link.classList.toggle('active', link.getAttribute('href') === `#${entry.target.id}`));
+      document.querySelectorAll('.nav-link').forEach(link => {
+        const active = link.getAttribute('href') === `#${entry.target.id}`;
+        link.classList.toggle('active', active);
+        if (active) link.setAttribute('aria-current', 'location');
+        else link.removeAttribute('aria-current');
+      });
     }
   }, { rootMargin: '-10% 0px -55% 0px' });
   document.querySelectorAll('#arcade, #flight-manual, #mission').forEach(section => sectionObserver.observe(section));
