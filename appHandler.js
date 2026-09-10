@@ -160,7 +160,12 @@ function render() {
   setText($('shield-status'), game.shieldTime > 0 ? 'SHIELD ACTIVE' : game.shieldCooldown > 0 ? `SHIELD CHARGING · ${Math.ceil(game.shieldCooldown)}s` : 'SHIELD READY · SHIFT');
   setText($('wave-announcement'), game.state === 'wave-clear' ? `WAVE ${game.wave} CLEARED` : game.waveIntro > 0 ? game.wave === 5 ? 'MOTHERSHIP INBOUND' : `WAVE 0${game.wave} / DEFEND EARTH` : '');
   $('boss-meter').hidden = !game.boss;
-  if (game.boss) $('boss-health').style.width = `${game.boss.hp / game.boss.maxHP * 100}%`;
+  if (game.boss) {
+    const health = Math.round(game.boss.hp / game.boss.maxHP * 100);
+    $('boss-health').style.width = `${health}%`;
+    $('boss-meter').setAttribute('aria-valuenow', String(health));
+    $('boss-meter').setAttribute('aria-valuetext', `${game.boss.hp} of ${game.boss.maxHP} hull points`);
+  }
 
   const objects = [game.player, ...game.enemies, ...game.bullets, ...(reducedMotion.matches ? [] : game.particles)];
   if (game.boss) objects.push(game.boss);
