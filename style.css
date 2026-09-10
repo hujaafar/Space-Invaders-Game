@@ -361,3 +361,15 @@ nav { display: flex; gap: 36px; }
   .motion-ready .reveal { opacity: 1; transform: none; }
   .game-shell.hit { transform: none; }
 }
+
+/* Fit active combat and its controls into short landscape viewports. */
+@media (max-height: 560px) and (orientation: landscape) {
+  html { scroll-padding-top: 12px; }
+  .game-shell:not([data-state=idle]) { min-height: 0; }
+  .play-screen { max-width: 900px; }
+  .battlefield { height: max(140px, calc(100svh - 190px)); aspect-ratio: auto; }
+  .hud { height: 60px; }
+  .battle-status { padding: 10px 0; }
+  .touch-controls { padding-bottom: 10px; }
+  .touch-button { min-height: 44px; }
+}
