@@ -1,81 +1,64 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Space Invaders - Story Mode</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10120f">
+  <meta name="description" content="Earth's last line of defense. Five waves of Space Invaders, responsive arcade combat, and an original deep-space world.">
+  <title>Space Invaders — Orbital Defense</title>
+  <link rel="icon" type="image/png" href="images/invader.png">
+  <link rel="preload" as="image" href="images/orbital.jpg" fetchpriority="high">
+  <link rel="stylesheet" href="style.css"><script type="module" src="appHandler.js"></script>
 </head>
 <body>
-
-  <div class="container">
-    <header class="scoreboard">
-      <div class="fps-display">FPS: 0</div>
-      <h1 class="result">Press Space to Start</h1>
-      <div class="status-bar">
-        <div class="lives-container">
-          <h2 class="lives">Lives: 3</h2>
+  <a class="skip-link" href="#arcade">Skip to game</a><div class="scroll-progress" aria-hidden="true"></div>
+  <header class="site-header">
+    <a class="wordmark" href="#arcade" aria-label="Space Invaders home"><img src="images/invader.png" alt="" width="28" height="24"><span>SPACE INVADERS<span class="wordmark-sub">ORBITAL DEFENSE</span></span></a>
+    <nav aria-label="Main navigation"><a class="nav-link active" href="#arcade">Play <span>01</span></a><a class="nav-link" href="#flight-manual">Flight manual <span>02</span></a><a class="nav-link" href="#mission">The mission <span>03</span></a></nav>
+    <button class="sound-button" id="sound-toggle" type="button" aria-pressed="false" aria-label="Turn sound on"><span class="sound-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span id="sound-label">SOUND OFF</span></button>
+  </header>
+  <main>
+    <section id="arcade" class="arcade" aria-labelledby="game-title">
+      <div class="arcade-topline"><span><i class="status-dot"></i> DEFENSE NETWORK ONLINE</span><span class="edition">EST. 1978 <b>/</b> REIMAGINED 2026</span></div>
+      <div class="game-shell" id="game-shell" data-state="idle">
+        <img class="space-art" src="images/orbital.jpg" alt="" width="1536" height="1024" fetchpriority="high"><div class="art-shade" aria-hidden="true"></div>
+        <div class="corner corner-tl" aria-hidden="true"></div><div class="corner corner-tr" aria-hidden="true"></div><div class="corner corner-bl" aria-hidden="true"></div><div class="corner corner-br" aria-hidden="true"></div>
+        <div class="start-screen" id="start-screen">
+          <div class="hero-copy"><p class="eyebrow"><span class="tiny-cross" aria-hidden="true">+</span> EARTH'S LAST LINE OF DEFENSE</p>
+            <h1 id="game-title">SPACE<br><span>INVADERS</span></h1>
+            <p class="hero-description">The signal is real. The invasion is here.<br>One ship. Five waves. Make every shot count.</p>
+            <fieldset class="difficulty-picker"><legend>SELECT YOUR DIFFICULTY</legend><label><input type="radio" name="difficulty" value="rookie"><span>Rookie</span></label><label><input type="radio" name="difficulty" value="pilot" checked><span>Pilot <i aria-hidden="true"></i></span></label><label><input type="radio" name="difficulty" value="ace"><span>Ace</span></label></fieldset>
+            <div class="launch-row"><button class="button button-primary" id="launch-button" type="button">Launch mission <span aria-hidden="true">↗</span></button><span class="keyboard-hint">or press <kbd>ENTER</kbd></span></div>
+          </div>
+          <div class="coordinates" aria-hidden="true">SECTOR 07 — SOL SYSTEM<br>28° 36′ 12.8″ N<br><span>INCOMING TRANSMISSION_</span></div>
+          <div class="target-label" aria-hidden="true"><span class="target-cross">+</span><div>STAR DEFENDER<span>CLASS I / INTERCEPTOR</span></div></div>
+          <a href="#flight-manual" class="scroll-cue"><span class="scroll-line" aria-hidden="true"></span> SCROLL TO EXPLORE <span aria-hidden="true">↓</span></a><div class="hero-stamp" aria-hidden="true">HUMANITY<br>IS COUNTING<br>ON YOU.</div>
         </div>
-        <div class="timer-container">
-          <h2 class="timer">Time: 50</h2>
+        <div class="play-screen" id="play-screen" hidden>
+          <div class="hud"><div><span>SCORE</span><strong id="score">000000</strong></div><div><span>WAVE</span><strong id="wave">01 <small>/ 05</small></strong></div><div><span>TIME</span><strong id="timer">75</strong></div><div><span>HULL</span><strong id="lives" aria-label="3 lives">▰ ▰ ▰</strong></div><button id="pause-button" class="icon-button" type="button" aria-label="Pause game">Ⅱ</button></div>
+          <div class="battlefield" id="battlefield" tabindex="0" role="region" aria-label="Space Invaders battlefield. Move with arrow keys or A and D, hold Space to shoot, Shift for shield, Escape to pause." aria-describedby="battle-help"><div class="star-field" id="star-field" aria-hidden="true"></div><div id="entities" aria-hidden="true"></div><div class="defense-line" aria-hidden="true"><span>DEFENSE PERIMETER</span></div><div class="wave-announcement" id="wave-announcement" aria-hidden="true"></div><div class="boss-meter" id="boss-meter" hidden><span>MOTHERSHIP</span><div><i id="boss-health"></i></div></div></div>
+          <div class="battle-status"><span id="combo">SYSTEMS NOMINAL</span><span id="shield-status">SHIELD READY · SHIFT</span><span id="best-inline">BEST 000000</span></div>
+          <div class="touch-controls" aria-label="Touch controls"><div><button data-control="left" class="touch-button" aria-label="Move left">←</button><button data-control="right" class="touch-button" aria-label="Move right">→</button></div><button data-control="shield" class="touch-button shield-touch" aria-label="Activate shield">SHIELD</button><button data-control="fire" class="touch-button fire-touch" aria-label="Fire">FIRE <span aria-hidden="true">↗</span></button></div>
         </div>
-        <div class="info-container">
-          <button class="info-button"><i class="fa-solid fa-circle-info"></i></button>
-        </div>
+        <div class="game-overlay" id="game-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="overlay-title" aria-describedby="overlay-description"><div class="overlay-content"><p class="eyebrow" id="overlay-eyebrow">FLIGHT ON HOLD</p><h2 id="overlay-title">Take a breath.</h2><p id="overlay-description">Your ship is safe. Resume when you're ready.</p><dl id="result-stats" class="result-stats" hidden><div><dt>SCORE</dt><dd id="result-score">0</dd></div><div><dt>ACCURACY</dt><dd id="result-accuracy">0%</dd></div><div><dt>WAVE</dt><dd id="result-wave">1 / 5</dd></div></dl><div class="overlay-actions"><button class="button button-primary" id="resume-button" type="button">Resume mission <span aria-hidden="true">↗</span></button><button class="button button-secondary" id="restart-button" type="button">Restart mission</button><button class="text-button" id="menu-button" type="button">Return to hangar <span aria-hidden="true">↗</span></button></div></div></div>
       </div>
-    </header>
-
-    <section class="game-area">
-      <div class="grid"></div>
+      <div class="arcade-footer"><p id="battle-help"><kbd>←</kbd><kbd>→</kbd> MOVE <span>·</span> <kbd>SPACE</kbd> FIRE <span>·</span> <kbd>SHIFT</kbd> SHIELD <span>·</span> <kbd>ESC</kbd> PAUSE</p><span class="personal-best">PERSONAL BEST <strong id="personal-best">000000</strong></span></div>
+      <noscript><p class="no-script">JavaScript is needed to launch the game. Enable it in your browser and reload.</p></noscript><p class="sr-only" id="announcer" aria-live="polite" aria-atomic="true"></p>
     </section>
-
-    <!-- Pause Overlay -->
-    <div class="pause-overlay">
-      <div class="pause-menu">
-        <h2>Paused</h2>
-        <button class="continue-button">Continue</button>
-        <button class="restart-button">Restart</button>
+    <section class="flight-manual section" id="flight-manual" aria-labelledby="manual-title">
+      <div class="section-heading reveal"><p class="eyebrow">01 / FLIGHT MANUAL</p><h2 id="manual-title">Simple controls.<br><span>Serious survival.</span></h2><p>Know your ship before you meet the fleet.<br>The rest comes down to your reflexes.</p></div>
+      <div class="manual-grid">
+        <article class="manual-card reveal"><div class="card-top"><span>01</span><span>MANEUVER</span></div><div class="key-display"><kbd>←</kbd><kbd>→</kbd><span>/</span><kbd>A</kbd><kbd>D</kbd></div><h3>Stay unpredictable.</h3><p>Move left and right to dodge incoming fire. Keep an escape route open.</p></article>
+        <article class="manual-card reveal"><div class="card-top"><span>02</span><span>ENGAGE</span></div><div class="key-display"><kbd class="wide-key">SPACE <span>⎵</span></kbd></div><h3>Hold your ground. And fire.</h3><p>Hold Space for continuous fire. Chain hits within three seconds for up to a 4× multiplier.</p></article>
+        <article class="manual-card reveal"><div class="card-top"><span>03</span><span>PROTECT</span></div><div class="key-display"><kbd class="wide-key">SHIFT <span>↑</span></kbd></div><h3>A little breathing room.</h3><p>Activate a two-second shield. It recharges every ten seconds. Save it for the tight spots.</p></article>
       </div>
-    </div>
-
-    <!-- Info Overlay -->
-    <div class="info-overlay">
-      <div class="info-menu">
-        <h2>Controls</h2>
-        <ul>
-          <li><strong><i class="fa-solid fa-arrow-left arrow"></i> : </strong>  Move Left<span class="hide">t</span></li>
-          <li><strong><i class="fa-solid fa-arrow-right arrow"></i> : </strong>Move Right</li>
-          <li><strong>Space:</strong> Shoot</li>
-          <li><strong>Escape:</strong> Pause/Resume</li>
-        </ul>
-        <button class="close-info-button">Close</button>
-      </div>
-    </div>
-
-    <!-- Introduction Overlay -->
-    <div class="introduction-overlay">
-      <div class="introduction-content">
-        <h2>Commander Nova, Earth's Last Hope!</h2>
-        <p>
-          <strong>Year 2250.</strong> Earth is under attack by relentless alien invaders. You are Commander Nova, the last line of defense. Your mission is to pilot the Star Defender and protect Earth from the alien fleet before it's too late.
-        </p>
-        <button class="start-game-button">Start Game</button>
-      </div>
-    </div>
-
-    <!-- Development Overlay -->
-    <div class="development-overlay">
-      <div class="development-content">
-        <h2>Critical Update: The Battle Intensifies!</h2>
-        <p>
-          Commander Nova, your bravery is turning the tide! The alien forces are weakening under your relentless assault. Stay strong and prepare to secure victory for Earth!        </p>
-        <button class="continue-story-button">Continue</button>
-      </div>
-    </div>
-
-  </div>
-
-  <script src="appHandler.js"></script>
+      <div class="manual-note reveal"><span><i class="status-dot"></i> ON A PHONE?</span><p>Use the on-screen movement, fire, and shield controls. Your mission goes wherever you do.</p><span class="note-arrow" aria-hidden="true">↗</span></div>
+    </section>
+    <section class="mission-section section" id="mission" aria-labelledby="mission-title">
+      <div class="mission-image reveal"><img src="images/orbital.jpg" alt="A lone interceptor approaches a cratered moon in deep space." width="1536" height="1024" loading="lazy"><span class="image-index">FIG. 01 — THE QUIET BEFORE</span><div class="image-caption">SOL SYSTEM<br><span>2250 A.D.</span></div></div>
+      <div class="mission-copy reveal"><p class="eyebrow">02 / MISSION BRIEFING</p><h2 id="mission-title">A familiar enemy.<br><em>A new frontier.</em></h2><p>Commander Nova, the outer colonies have gone silent. An unidentified fleet is approaching Earth. You're the last interceptor between them and home.</p><p>Break through four increasingly dangerous formations. Take down the mothership in the fifth. Bring your ship back.</p><div class="mission-facts"><div><strong>05</strong><span>INVASION WAVES</span></div><div><strong>03</strong><span>LIVES TO GIVE</span></div><div><strong>01</strong><span>PLANET TO SAVE</span></div></div><a class="mission-link" href="#arcade">Your planet. Your move. <span aria-hidden="true">↗</span></a></div>
+    </section>
+    <section class="enemy-section section" aria-labelledby="enemy-title"><div class="enemy-heading reveal"><p class="eyebrow">03 / KNOW YOUR ENEMY</p><h2 id="enemy-title">They're not here to talk.</h2></div><div class="enemy-list reveal"><div><img src="images/invader.png" class="scout-art" alt="" width="66" height="54"><span><strong>Scout</strong><small>FAST. FRAGILE. NEVER ALONE.</small></span><b>100 <small>PTS</small></b></div><div><img src="images/invader.png" class="drone-art" alt="" width="66" height="54"><span><strong>Drone</strong><small>THE BACKBONE OF THE FLEET.</small></span><b>150 <small>PTS</small></b></div><div><img src="images/invader.png" class="brute-art" alt="" width="66" height="54"><span><strong>Brute</strong><small>ARMORED FROM WAVE THREE.</small></span><b>250 <small>PTS</small></b></div></div><p class="enemy-note">Base points before combo and difficulty bonuses. The mothership awards 5,000 points.</p></section>
+  </main>
+  <footer class="site-footer"><a class="wordmark" href="#arcade"><img src="images/invader.png" alt="" width="24" height="20"><span>SPACE INVADERS<span class="wordmark-sub">ORBITAL DEFENSE</span></span></a><p>A tribute to the arcade. A mission of your own.</p><a href="https://github.com/hujaafar/Space-Invaders-Game" target="_blank" rel="noopener noreferrer">View repository <span aria-hidden="true">↗</span></a><a class="back-top" href="#arcade" aria-label="Back to game">↑</a></footer>
 </body>
 </html>
