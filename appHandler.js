@@ -1,620 +1,298 @@
-// Select DOM elements
-const grid = document.querySelector(".grid");
-const resultDisplay = document.querySelector(".result");
-const livesDisplay = document.querySelector(".lives");
-const timerDisplay = document.querySelector(".timer");
-const pauseOverlay = document.querySelector(".pause-overlay");
-const continueButton = document.querySelector(".continue-button");
-const restartButton = document.querySelector(".restart-button");
-const infoButton = document.querySelector(".info-button");
-const infoOverlay = document.querySelector(".info-overlay");
-const closeInfoButton = document.querySelector(".close-info-button");
-const fpsDisplay = document.querySelector(".fps-display"); // Select the FPS display element
+import { SpaceInvaders, WORLD } from './src/engine.js';
+import { ArcadeAudio } from './src/audio.js';
+import { createStorage } from './src/storage.js';
 
-// New elements for story mode
-const introductionOverlay = document.querySelector(".introduction-overlay");
-const startGameButton = document.querySelector(".start-game-button");
-const developmentOverlay = document.querySelector(".development-overlay");
-const continueStoryButton = document.querySelector(".continue-story-button");
+const $ = (id) => document.getElementById(id);
+const game = new SpaceInvaders();
+const sound = new ArcadeAudio();
+const storage = createStorage();
+const shell = $('game-shell');
+const battlefield = $('battlefield');
+const overlay = $('game-overlay');
+const keys = new Set();
+const pointers = new Map();
+const nodes = new Map();
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const formatScore = value => String(value).padStart(6, '0');
+let difficulty = storage.difficulty();
+let best = storage.best(difficulty);
+let frameId = null;
+let previousTime = null;
+let accumulator = 0;
+let fieldWidth = 900;
+let fieldHeight = 490;
+let scrollPending = false;
+const STEP = 1 / 120;
+const outsideDialog = [...document.querySelectorAll('.site-header, .flight-manual, .mission-section, .enemy-section, .site-footer, .arcade-footer')];
 
-const movementCooldown = 100;
-const shotCooldown = 300;
-const width = 15;
-const movementSpeed = 1;
-const gameTime = 50; // Total game time in seconds
-let isGameRestarted = false;
-let frameCount = 0;
-let fps = 0;
-let lastFpsUpdateTime = 0;
+document.querySelector(`input[name="difficulty"][value="${difficulty}"]`).checked = true;
+sound.enabled = storage.sound();
 
-let lastMoveTime = 0; // Track the time of the last move
-let pausedTime = null;
-let lastShotTime = 0; // Store the time of the last shot
-let currentShooterIndex = 202;
-let alienInvaders = [];
-let aliensRemoved = [];
-let result = 0;
-let direction = -1; // Start moving left
-let goingRight = false;
-let lives = 3;
-let gameStarted = false;
-let isPaused = false;
-let animationFrameId;
-let invaderInterval = 1000; // Invader movement interval in milliseconds
-let lastInvaderMoveTime = 0;
-let gameStartTime;
-let remainingTime = gameTime;
-let invaderShootInterval = 800; // How often invaders shoot
-let lastInvaderShootTime = 0;
-let keys = {};
-let totalInvaders;
-let gameOver = false; // Track if the game is over
-let developmentShown = false; // Track if development message has been shown
-
-// Create the grid
-for (let i = 0; i < width * width; i++) {
-  const square = document.createElement("div");
-  grid.appendChild(square);
+function announce(text) { $('announcer').textContent = text; }
+function updateBest() {
+  $('personal-best').textContent = formatScore(best);
+  $('best-inline').textContent = `BEST ${formatScore(best)}`;
 }
-const squares = Array.from(document.querySelectorAll(".grid div"));
-
-// Define the alien invaders
-function createAliens() {
-  alienInvaders = [
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-    15,16,17,18,19,20,21,22,23,24,
-    30,31,32,33,34,35,36,37,38,39,
-    45,46,47,48,49,50,51,52,53,54,
-    60,61,62,63,64,65,66,67,68,69,
-  ];
-  totalInvaders = alienInvaders.length;
+function updateSound() {
+  $('sound-toggle').setAttribute('aria-pressed', String(sound.enabled));
+  $('sound-toggle').setAttribute('aria-label', `Turn sound ${sound.enabled ? 'off' : 'on'}`);
+  $('sound-label').textContent = `SOUND ${sound.enabled ? 'ON' : 'OFF'}`;
 }
-
-// Draw the alien invaders
-function drawInvaders() {
-  alienInvaders.forEach((invader, i) => {
-    if (!aliensRemoved.includes(i)) {
-      squares[invader].classList.add("invader");
-    }
-  });
+function clearInput() {
+  keys.clear(); pointers.clear();
+  document.querySelectorAll('.touch-button').forEach(button => button.classList.remove('is-held'));
 }
-
-// Remove the alien invaders
-function removeInvaders() {
-  alienInvaders.forEach((invader) => {
-    squares[invader].classList.remove("invader");
-  });
-}
-
-// Draw the shooter
-function drawShooter() {
-  squares[currentShooterIndex].classList.add("shooter");
-}
-
-// Remove the shooter
-function removeShooter() {
-  squares[currentShooterIndex].classList.remove("shooter");
-}
-
-// Move the shooter
-function moveShooter() {
-  const currentTime = Date.now();
-
-  // Check if enough time has passed since the last move
-  if (currentTime - lastMoveTime >= movementCooldown) {
-    // Update the last move time
-    lastMoveTime = currentTime;
-
-    // Continue with shooter movement
-    removeShooter();
-    if (keys["ArrowLeft"] && currentShooterIndex % width !== 0) {
-      currentShooterIndex -= movementSpeed;
-    }
-    if (keys["ArrowRight"] && currentShooterIndex % width < width - 1) {
-      currentShooterIndex += movementSpeed;
-    }
-    drawShooter();
-  }
-
-  // Handle shooting
-  if (keys["Space"]) {
-    shootLaser();
-  }
-}
-
-function shootLaser() {
-  if (isPaused) return; // Do nothing if the game is paused
-
-  const currentTime = Date.now();
-
-  // Check if enough time has passed since the last shot
-  if (currentTime - lastShotTime < shotCooldown) {
-    return; // Prevent shooting if the cooldown hasn't passed
-  }
-  let audio = new Audio("sounds/shoot.wav");
-  audio.play();
-  lastShotTime = currentTime; // Update the last shot time
-
-  let currentLaserIndex = currentShooterIndex;
-
-  function moveLaser() {
-    if (squares[currentLaserIndex]) {
-      squares[currentLaserIndex].classList.remove("laser");
-    }
-    currentLaserIndex -= width;
-    if (currentLaserIndex < 0) {
-      return;
-    }
-    squares[currentLaserIndex].classList.add("laser");
-
-    if (squares[currentLaserIndex].classList.contains("invader")) {
-      squares[currentLaserIndex].classList.remove("laser", "invader");
-      squares[currentLaserIndex].classList.add("boom");
-      let audio = new Audio("sounds/invaderkilled.wav");
-      audio.play();
-
-      setTimeout(
-        () => squares[currentLaserIndex].classList.remove("boom"),
-        250
-      );
-
-      const alienRemovedIndex = alienInvaders.indexOf(currentLaserIndex);
-      if (alienRemovedIndex >= 0) {
-        aliensRemoved.push(alienRemovedIndex);
-      }
-      result += 10;
-      resultDisplay.innerHTML = "Score: " + result;
-
-      // Show development message when score reaches 350
-      if (result >= 250 && !developmentShown) {
-        developmentShown = true;
-        pauseGame();
-        showDevelopmentMessage();
-        return; // Stop processing further until player continues
-      }
-
-      // Check if all invaders are destroyed
-      if (aliensRemoved.length === totalInvaders) {
-        if (lives > 0) {
-          resultDisplay.innerHTML = "You Win!";
-          let audio = new Audio("sounds/win.mp3");
-          audio.play();
-        } else {
-          resultDisplay.innerHTML = "Draw";
-        }
-        endGame(true); // Pass true to indicate that the player won
-        return;
-      }
-      return;
-    } else {
-      requestAnimationFrame(moveLaser);
-    }
-  }
-  requestAnimationFrame(moveLaser);
-}
-
-// Invaders shoot back
-function invadersShoot(timestamp) {
-  if (!lastInvaderShootTime) lastInvaderShootTime = timestamp;
-  const elapsed = timestamp - lastInvaderShootTime;
-
-  if (elapsed > invaderShootInterval && alienInvaders.length > 0) {
-    const availableInvaders = alienInvaders.filter(
-      (_, i) => !aliensRemoved.includes(i)
-    );
-    if (availableInvaders.length === 0) return;
-    const shootingInvaderIndex =
-      availableInvaders[Math.floor(Math.random() * availableInvaders.length)];
-    let currentEnemyLaserIndex = shootingInvaderIndex;
-
-    function moveEnemyLaser() {
-      if (squares[currentEnemyLaserIndex]) {
-        squares[currentEnemyLaserIndex].classList.remove("enemy-laser");
-      }
-      currentEnemyLaserIndex += width;
-      if (currentEnemyLaserIndex >= squares.length) {
-        return;
-      }
-      squares[currentEnemyLaserIndex].classList.add("enemy-laser");
-
-      if (squares[currentEnemyLaserIndex].classList.contains("shooter")) {
-        squares[currentEnemyLaserIndex].classList.remove("enemy-laser");
-        squares[currentEnemyLaserIndex].classList.add("boom");
-        setTimeout(
-          () => squares[currentEnemyLaserIndex].classList.remove("boom"),
-          250
-        );
-        lives--;
-        livesDisplay.innerHTML = "Lives: " + lives + " ";
-        if (lives <= 0) {
-          if (aliensRemoved.length !== totalInvaders) {
-            resultDisplay.innerHTML = "Game Over";
-            let audio = new Audio("sounds/loser.mp3");
-            audio.play();
-          } else {
-            resultDisplay.innerHTML = "Draw";
-          }
-          endGame(false); // Pass false to indicate the player lost
-          return;
-        }
-      } else {
-        requestAnimationFrame(moveEnemyLaser);
-      }
-    }
-    requestAnimationFrame(moveEnemyLaser);
-    lastInvaderShootTime = timestamp;
-  }
-}
-
-// Move the invaders
-function moveInvaders(timestamp) {
-  if (!lastInvaderMoveTime) lastInvaderMoveTime = timestamp;
-  const elapsed = timestamp - lastInvaderMoveTime;
-
-  calculateFPS(); // Calculate and update FPS
-
-  if (elapsed > invaderInterval) {
-    const leftEdge = alienInvaders[0] % width === 0;
-    const rightEdge =
-      alienInvaders[alienInvaders.length - 1] % width === width - 1;
-
-    removeInvaders();
-
-    if (leftEdge && !goingRight) {
-      for (let i = 0; i < alienInvaders.length; i++) {
-        alienInvaders[i] += width;
-      }
-      direction = 1;
-      goingRight = true;
-    } else if (rightEdge && goingRight) {
-      for (let i = 0; i < alienInvaders.length; i++) {
-        alienInvaders[i] += width;
-      }
-      direction = -1;
-      goingRight = false;
-    }
-
-    // Move aliens
-    for (let i = 0; i < alienInvaders.length; i++) {
-      alienInvaders[i] += direction;
-    }
-
-    drawInvaders();
-    lastInvaderMoveTime = timestamp;
-
-    // Increase difficulty over time, but more slowly
-    if (invaderInterval > 200) {
-      invaderInterval -= 1;
-    }
-
-    // Check for game over conditions
-    if (
-      squares[currentShooterIndex].classList.contains("invader", "shooter")
-    ) {
-      squares[currentShooterIndex].classList.add("boom");
-      lives--;
-      livesDisplay.innerHTML = "Lives: " + lives + " ";
-      if (lives <= 0) {
-        resultDisplay.innerHTML = "Game Over";
-        let audio = new Audio("sounds/loser.mp3");
-        audio.play();
-        endGame(false);
-        return;
-      } else {
-        setTimeout(() => {
-          squares[currentShooterIndex].classList.remove("boom");
-          removeShooter();
-          currentShooterIndex = 202;
-          drawShooter();
-        }, 250);
-      }
-    }
-
-    const invadersReachedBottom = alienInvaders.some((invader, i) => {
-      return !aliensRemoved.includes(i) && invader >= squares.length - width;
-    });
-
-    if (invadersReachedBottom) {
-      resultDisplay.innerHTML = "Game Over";
-      let audio = new Audio("sounds/loser.mp3");
-      audio.play();
-      endGame(false);
-      return;
-    }
-  }
-
-  // Invaders shooting back
-  invadersShoot(timestamp);
-
-  // Update shooter position
-  moveShooter();
-
-  // Update timer
-  updateTimer();
-
-  // Continue the animation
-  if (!isPaused) {
-    animationFrameId = requestAnimationFrame(moveInvaders);
-  }
-}
-
-// Update the timer
-function updateTimer() {
-  if (isPaused) return; // Do nothing if the game is paused
-
-  const currentTime = Date.now(); // Get the current time in milliseconds
-
-  if (!gameStartTime) gameStartTime = currentTime; // Set the start time only if it's not already set
-
-  const elapsedTime = Math.floor((currentTime - gameStartTime) / 1000); // Calculate elapsed time in seconds
-  remainingTime = gameTime - elapsedTime;
-
-  timerDisplay.innerHTML = "Time: " + remainingTime;
-
-  if (remainingTime <= 0) {
-    timerDisplay.innerHTML = "Time: 0";
-    resultDisplay.innerHTML = "Time Up!";
-    let audio = new Audio("sounds/loser.mp3");
-    audio.play();
-    endGame(false);
-  }
-}
-
-// Start the game
-function startGame() {
-  if (gameStarted || gameOver) return;
-  gameStarted = true;
-  result = 0;
-  lives = 3;
-  direction = -1;
-  goingRight = false;
-  aliensRemoved = [];
-  currentShooterIndex = 202;
-  squares.forEach((square) => {
-    square.classList.remove(
-      "invader",
-      "shooter",
-      "laser",
-      "boom",
-      "enemy-laser"
-    );
-  });
-  createAliens();
-  drawInvaders();
-  drawShooter();
-  resultDisplay.innerHTML = "Score: " + result;
-  livesDisplay.innerHTML = "Lives: " + lives + " ";
-  timerDisplay.innerHTML = "Time: " + gameTime + " ";
-  isPaused = false;
-  lastInvaderMoveTime = 0;
-  lastInvaderShootTime = 0;
-  invaderInterval = 1000;
-  gameStartTime = null;
-  gameOver = false; // Reset the gameOver flag when game restarts
-  developmentShown = false; // Reset development message flag
-
-  document.addEventListener("keydown", keyDownHandler);
-  document.addEventListener("keyup", keyUpHandler);
-  animationFrameId = requestAnimationFrame(moveInvaders);
-}
-
-// End the game
-function endGame(playerWon) {
-  if (gameOver) return;
-  gameStarted = false;
-  gameOver = true; // Set gameOver to true when game ends
-  document.removeEventListener("keydown", keyDownHandler);
-  document.removeEventListener("keyup", keyUpHandler);
-  cancelAnimationFrame(animationFrameId);
-
-  // Display the results page
-  showResultsPage(playerWon);
-}
-
-// Pause the game
-function pauseGame() {
-  if (!isPaused) {
-    pausedTime = Date.now(); // Capture the time when the game is paused
-    isPaused = true;
-  }
-  if (!gameStarted) return;
-  isPaused = true;
-  cancelAnimationFrame(animationFrameId);
-}
-
-// Resume the game
-function resumeGame() {
-  if (isPaused) {
-    const pauseDuration = Date.now() - pausedTime; // Calculate the time the game was paused
-    gameStartTime += pauseDuration; // Adjust the gameStartTime to account for the pause duration
-    isPaused = false; // Reset the pause flag
-    pausedTime = null; // Clear pausedTime
-  }
-  if (!gameStarted) return;
-  isPaused = false;
-  pauseOverlay.style.display = "none";
-  animationFrameId = requestAnimationFrame(moveInvaders);
-}
-
-// Restart the game and show the introduction overlay
-function restartGame() {
-  // Clear paused state and hide pause overlay
-  keys = {}; // Clear the keys object
-  isPaused = false; // Reset the paused state
-  pausedTime = null; // Clear paused time
-  pauseOverlay.style.display = "none"; // Hide the pause overlay
-
-  // Cancel ongoing animations and reset game variables
-  cancelAnimationFrame(animationFrameId); // Cancel any ongoing animations
-  gameStarted = false;
-  gameOver = false;
-
-  const resultsPage = document.getElementById("results-page");
-  if (resultsPage) {
-    document.body.removeChild(resultsPage); // Remove results page if shown
-  }
-
-  // Reset grid and game variables before restarting
-  squares.forEach((square) => {
-    square.classList.remove(
-      "invader",
-      "shooter",
-      "laser",
-      "boom",
-      "enemy-laser"
-    );
-  });
-
-  result = 0;
-  lives = 3;
-  aliensRemoved = [];
-  currentShooterIndex = 202;
-  lastInvaderMoveTime = 0;
-  lastInvaderShootTime = 0;
-  invaderInterval = 1000;
-  gameStartTime = null;
-  remainingTime = gameTime;
-  developmentShown = false;
-  isGameRestarted = true;
-  // Show introduction overlay again
-  //introductionOverlay.style.display = "block";
-  startGame()
-}
-
-// Handle key presses
-function keyDownHandler(e) {
-  if (e.code === "Escape") {
-    if (isPaused) {
-      resumeGame();
-    } else {
-      pauseGame();
-      pauseOverlay.style.display = "block";
-    }
-  } else if (e.code === "Space") {
-    keys[e.code] = true;
-    e.preventDefault(); // Prevent default scrolling behavior
-  } else if (e.code === "ArrowLeft" || e.code === "ArrowRight") {
-    keys[e.code] = true;
-  }
-}
-
-function keyUpHandler(e) {
-  if (
-    e.code === "ArrowLeft" ||
-    e.code === "ArrowRight" ||
-    e.code === "Space"
-  ) {
-    keys[e.code] = false;
-  }
-}
-
-// Pause menu buttons
-continueButton.addEventListener("click", () => {
-  pauseOverlay.style.display = "none";
-  resumeGame();
-});
-restartButton.addEventListener("click", restartGame);
-
-// Start game when "Start Game" button is clicked
-if (!isGameRestarted){
-  startGameButton.addEventListener("click", () => {
-    introductionOverlay.style.display = "none";
-    startGame();
-  });
-}
-
-// Continue game after development message
-continueStoryButton.addEventListener("click", () => {
-  developmentOverlay.style.display = "none";
-  resumeGame();
-});
-
-// Display results page
-function showResultsPage(playerWon) {
-  if (document.getElementById("results-page")) return; // Already exists
-
-  const resultsPage = document.createElement("div");
-  resultsPage.className = "results-page";
-  resultsPage.id = "results-page";
-  resultsPage.style.position = "absolute";
-  resultsPage.style.top = "50%";
-  resultsPage.style.left = "50%";
-  resultsPage.style.transform = "translate(-50%, -50%)";
-  resultsPage.style.textAlign = "center";
-  resultsPage.style.color = "yellow";
-  resultsPage.style.backgroundColor = "#000000";
-  resultsPage.style.padding = "20px";
-  resultsPage.style.border = "2px solid #ffeb3b";
-  resultsPage.style.fontFamily = "'Press Start 2P', cursive";
-  resultsPage.style.fontSize = "24px";
-
-  const title = document.createElement("h1");
-  title.innerHTML = playerWon ? "Mission Accomplished!" : "Mission Failed";
-
-  const conclusion = document.createElement("p");
-  conclusion.style.fontSize = "16px";
-  conclusion.style.marginTop = "20px";
-  if (playerWon) {
-    conclusion.innerHTML =
-      "Congratulations! You've defeated the alien invaders and saved Earth. Humanity is forever grateful for your bravery.";
-  } else {
-    conclusion.innerHTML =
-      "The alien invaders have overwhelmed our defenses. Earth has fallen. We will remember your sacrifice.";
-  }
-
-  const score = document.createElement("p");
-  score.innerHTML = `Final Score: ${result}`;
-
-  const time = document.createElement("p");
-  time.innerHTML = `Time Left: ${remainingTime > 0 ? remainingTime : 0}`;
-
-  const restartBtn = document.createElement("button");
-  restartBtn.innerHTML = "Restart";
-  restartBtn.style.marginTop = "20px";
-  restartBtn.style.padding = "10px 20px";
-  restartBtn.style.cursor = "pointer";
-  restartBtn.onclick = () => {
-    document.body.removeChild(resultsPage); // Remove results page
-    restartGame();
+function input() {
+  const touch = new Set(pointers.values());
+  return {
+    left: keys.has('ArrowLeft') || keys.has('KeyA') || touch.has('left'),
+    right: keys.has('ArrowRight') || keys.has('KeyD') || touch.has('right'),
+    fire: keys.has('Space') || touch.has('fire'),
+    shield: keys.has('ShiftLeft') || keys.has('ShiftRight') || touch.has('shield'),
   };
-
-  resultsPage.appendChild(title);
-  resultsPage.appendChild(conclusion);
-  resultsPage.appendChild(score);
-  resultsPage.appendChild(time);
-  resultsPage.appendChild(restartBtn);
-
-  document.body.appendChild(resultsPage);
+}
+function stopClock() {
+  if (frameId !== null) cancelAnimationFrame(frameId);
+  frameId = null; previousTime = null; accumulator = 0;
+}
+function startClock() {
+  if (frameId !== null) return;
+  previousTime = null; accumulator = 0;
+  frameId = requestAnimationFrame(frame);
 }
 
-// Pause the game and show the info window
-infoButton.addEventListener("click", () => {
-  pauseGame(); // Pause the game
-  infoOverlay.style.display = "block"; // Show the info overlay
-});
-
-// Close the info window and resume the game
-closeInfoButton.addEventListener("click", () => {
-  infoOverlay.style.display = "none"; // Hide the info overlay
-  resumeGame(); // Resume the game
-});
-
-function calculateFPS() {
-  // Increment the frame count
-  frameCount++;
-
-  // Update FPS once per second
-  const currentTime = Date.now();
-  if (currentTime - lastFpsUpdateTime >= 1000) {
-    // Every second
-    fps = frameCount; // Frames in the last second
-    fpsDisplay.innerHTML = `FPS: ${fps}`;
-    frameCount = 0; // Reset the frame count
-    lastFpsUpdateTime = currentTime; // Update the last FPS update time
+function setDialog(open) {
+  overlay.hidden = !open;
+  $('play-screen').inert = open;
+  outsideDialog.forEach(element => { element.inert = open; });
+}
+function launch() {
+  clearInput(); stopClock(); setDialog(false);
+  game.start(difficulty);
+  shell.dataset.state = game.state;
+  $('start-screen').hidden = true;
+  $('play-screen').hidden = false;
+  battlefield.focus({ preventScroll: true });
+  // Measure only when the play surface becomes visible; resizing is handled separately.
+  fieldWidth = battlefield.clientWidth; fieldHeight = battlefield.clientHeight;
+  shell.scrollIntoView({ behavior: 'instant', block: 'start' });
+  void sound.unlock();
+  handleEvents(); render(); startClock();
+}
+function pause() {
+  if (!game.pause()) return;
+  clearInput(); stopClock();
+  shell.dataset.state = game.state;
+  $('overlay-eyebrow').textContent = 'FLIGHT ON HOLD';
+  $('overlay-title').textContent = 'Take a breath.';
+  $('overlay-description').textContent = "Your ship is safe. Resume when you're ready.";
+  $('result-stats').hidden = true;
+  $('resume-button').hidden = false;
+  $('restart-button').textContent = 'Restart mission';
+  setDialog(true);
+  $('resume-button').focus({ preventScroll: true });
+  announce('Mission paused.');
+}
+function resume() {
+  if (!game.resume()) return;
+  clearInput(); setDialog(false);
+  shell.dataset.state = game.state;
+  battlefield.focus({ preventScroll: true });
+  shell.scrollIntoView({ behavior: 'instant', block: 'start' });
+  void sound.unlock(); startClock();
+  announce('Mission resumed.');
+}
+function hangar() {
+  stopClock(); clearInput(); setDialog(false);
+  game.state = 'idle'; shell.dataset.state = 'idle';
+  $('start-screen').hidden = false; $('play-screen').hidden = true;
+  $('launch-button').focus({ preventScroll: true });
+  shell.scrollIntoView({ behavior: reducedMotion.matches ? 'instant' : 'smooth', block: 'start' });
+}
+function results(won) {
+  clearInput(); stopClock();
+  const previousBest = best;
+  best = Math.max(best, storage.saveBest(difficulty, game.score));
+  updateBest();
+  $('overlay-eyebrow').textContent = game.score > previousBest ? 'NEW PERSONAL BEST' : won ? 'TRANSMISSION RECEIVED' : 'SIGNAL LOST';
+  $('overlay-title').textContent = won ? 'Earth is still ours.' : 'Not your last flight.';
+  $('overlay-description').textContent = won ? 'Mothership destroyed. Five waves cleared. Welcome home, Commander.' : game.reason;
+  $('result-score').textContent = game.score.toLocaleString();
+  $('result-accuracy').textContent = `${game.accuracy}%`;
+  $('result-wave').textContent = `${game.wave} / ${WORLD.waves}`;
+  $('result-stats').hidden = false; $('resume-button').hidden = true;
+  $('restart-button').textContent = 'Fly again ↗';
+  setDialog(true); $('restart-button').focus({ preventScroll: true });
+  announce(`${won ? 'Mission accomplished' : 'Mission ended'}. Score ${game.score}. Wave ${game.wave}. Accuracy ${game.accuracy} percent.`);
+}
+function handleEvents() {
+  for (const event of game.drainEvents()) {
+    sound.play(event.type);
+    if (event.type === 'wave') announce(event.wave === 5 ? 'Final wave. Mothership approaching.' : `Wave ${event.wave}. Defend the perimeter.`);
+    if (event.type === 'clear') announce(`Wave ${event.wave} cleared.`);
+    if (event.type === 'damage') {
+      if (!reducedMotion.matches) shell.classList.add('hit');
+      announce(`${event.lives} ${event.lives === 1 ? 'life' : 'lives'} remaining.`);
+    }
+    if (event.type === 'victory' || event.type === 'defeat') results(event.type === 'victory');
   }
 }
 
-// Show development message when score reaches 350
-function showDevelopmentMessage() {
-  developmentOverlay.style.display = "block";
+function render() {
+  shell.dataset.state = game.state;
+  $('score').textContent = formatScore(game.score);
+  $('wave').firstChild.textContent = `${String(game.wave).padStart(2, '0')} `;
+  $('timer').textContent = String(Math.ceil(game.remaining)).padStart(2, '0');
+  $('lives').textContent = [0, 1, 2].map(index => index < game.lives ? '▰' : '▱').join(' ');
+  $('lives').setAttribute('aria-label', `${game.lives} lives`);
+  $('combo').textContent = game.multiplier > 1 ? `${game.multiplier}× COMBO · ${game.streak} HIT CHAIN` : 'SYSTEMS NOMINAL';
+  $('shield-status').textContent = game.shieldTime > 0 ? 'SHIELD ACTIVE' : game.shieldCooldown > 0 ? `SHIELD CHARGING · ${Math.ceil(game.shieldCooldown)}s` : 'SHIELD READY · SHIFT';
+  $('wave-announcement').textContent = game.state === 'wave-clear' ? `WAVE ${game.wave} CLEARED` : game.waveIntro > 0 ? game.wave === 5 ? 'MOTHERSHIP INBOUND' : `WAVE 0${game.wave} / DEFEND EARTH` : '';
+  $('boss-meter').hidden = !game.boss;
+  if (game.boss) $('boss-health').style.width = `${game.boss.hp / game.boss.maxHP * 100}%`;
+
+  const objects = [game.player, ...game.enemies, ...game.bullets, ...(reducedMotion.matches ? [] : game.particles)];
+  if (game.boss) objects.push(game.boss);
+  const active = new Set();
+  for (const object of objects) {
+    active.add(object.id);
+    let node = nodes.get(object.id);
+    if (!node) {
+      node = document.createElement('div');
+      nodes.set(object.id, node); $('entities').append(node);
+    }
+    let className = `entity ${object.kind} ${object.type || ''}`;
+    if (object.kind === 'player' && (game.shieldTime > 0 || game.invulnerable > 0)) className += ' protected';
+    if (object.kind === 'enemy' && object.hp > 1) className += ' armored';
+    if (node.className !== className) node.className = className;
+    node.style.width = `${object.w / WORLD.width * 100}%`;
+    node.style.height = `${object.h / WORLD.height * 100}%`;
+    node.style.transform = `translate3d(${object.x / WORLD.width * fieldWidth}px, ${object.y / WORLD.height * fieldHeight}px, 0)`;
+    if (object.kind === 'particle') {
+      node.style.setProperty('--particle-color', object.color);
+      node.style.opacity = Math.min(1, object.life * 3);
+    }
+  }
+  for (const [id, node] of nodes) if (!active.has(id)) { node.remove(); nodes.delete(id); }
 }
+
+function frame(timestamp) {
+  frameId = null;
+  if (game.state !== 'playing' && game.state !== 'wave-clear') return;
+  if (previousTime === null) previousTime = timestamp;
+  accumulator += Math.min((timestamp - previousTime) / 1000, .1);
+  previousTime = timestamp;
+  // Fixed simulation ticks keep movement fair across 30, 60, and 144 Hz displays.
+  while (accumulator >= STEP) {
+    game.step(STEP, input()); accumulator -= STEP;
+  }
+  render(); handleEvents();
+  if (game.state === 'playing' || game.state === 'wave-clear') frameId = requestAnimationFrame(frame);
+}
+
+$('launch-button').addEventListener('click', launch);
+$('restart-button').addEventListener('click', launch);
+$('pause-button').addEventListener('click', pause);
+$('resume-button').addEventListener('click', resume);
+$('menu-button').addEventListener('click', hangar);
+shell.addEventListener('animationend', () => shell.classList.remove('hit'));
+$('sound-toggle').addEventListener('click', async () => {
+  sound.enabled = !sound.enabled; sound.syncMute(); storage.saveSound(sound.enabled); updateSound();
+  await sound.unlock();
+  if (sound.enabled) sound.play('shield');
+});
+document.querySelectorAll('input[name="difficulty"]').forEach(radio => radio.addEventListener('change', () => {
+  difficulty = radio.value; storage.saveDifficulty(difficulty); best = storage.best(difficulty); updateBest();
+}));
+
+document.addEventListener('keydown', event => {
+  if (!overlay.hidden && event.code === 'Tab') {
+    const controls = [...overlay.querySelectorAll('button:not([hidden])')];
+    const first = controls[0], last = controls.at(-1);
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    return;
+  }
+  if (event.code === 'Escape' || event.code === 'KeyP') {
+    if (event.repeat) return;
+    if (game.state === 'paused') resume();
+    else if (game.state === 'playing' || game.state === 'wave-clear') pause();
+    else if (!overlay.hidden && event.code === 'Escape') hangar();
+    return;
+  }
+  // Native buttons, links, and difficulty radios retain their normal keyboard behavior.
+  if (event.target.closest('button, a, input, textarea, select, [contenteditable="true"]')) return;
+  if (game.state === 'idle' && event.code === 'Enter' && !event.repeat) { event.preventDefault(); launch(); return; }
+  if (game.state !== 'playing') return;
+  if (['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD', 'Space', 'ShiftLeft', 'ShiftRight'].includes(event.code)) {
+    event.preventDefault(); keys.add(event.code);
+  }
+});
+document.addEventListener('keyup', event => keys.delete(event.code));
+window.addEventListener('blur', () => { clearInput(); pause(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { clearInput(); pause(); } });
+
+document.querySelectorAll('[data-control]').forEach(button => {
+  button.addEventListener('pointerdown', event => {
+    if (game.state !== 'playing') return;
+    event.preventDefault(); button.setPointerCapture(event.pointerId);
+    pointers.set(event.pointerId, button.dataset.control); button.classList.add('is-held');
+  });
+  const release = event => {
+    pointers.delete(event.pointerId);
+    if (![...pointers.values()].includes(button.dataset.control)) button.classList.remove('is-held');
+  };
+  button.addEventListener('pointerup', release);
+  button.addEventListener('pointercancel', release);
+  button.addEventListener('lostpointercapture', release);
+});
+
+const resizeObserver = new ResizeObserver(() => {
+  if (!$('play-screen').hidden) {
+    fieldWidth = battlefield.clientWidth; fieldHeight = battlefield.clientHeight;
+    if (game.player) render();
+  }
+});
+resizeObserver.observe(battlefield);
+
+// Stars are cosmetic and use a separate random source from the game simulation.
+const stars = document.createDocumentFragment();
+for (let i = 0; i < 65; i++) {
+  const star = document.createElement('i'); star.className = 'star';
+  star.style.left = `${Math.random() * 100}%`; star.style.top = `${Math.random() * 100}%`;
+  star.style.opacity = .15 + Math.random() * .5; stars.append(star);
+}
+$('star-field').append(stars);
+
+if ('IntersectionObserver' in window) {
+  if (!reducedMotion.matches) document.documentElement.classList.add('motion-ready');
+  const revealObserver = new IntersectionObserver(entries => {
+    for (const entry of entries) if (entry.isIntersecting) {
+      entry.target.classList.add('is-visible'); revealObserver.unobserve(entry.target);
+    }
+  }, { threshold: .08 });
+  document.querySelectorAll('.reveal').forEach(element => revealObserver.observe(element));
+  const sectionObserver = new IntersectionObserver(entries => {
+    for (const entry of entries) if (entry.isIntersecting) {
+      document.querySelectorAll('.nav-link').forEach(link => link.classList.toggle('active', link.getAttribute('href') === `#${entry.target.id}`));
+    }
+  }, { rootMargin: '-10% 0px -55% 0px' });
+  document.querySelectorAll('#arcade, #flight-manual, #mission').forEach(section => sectionObserver.observe(section));
+  const playObserver = new IntersectionObserver(entries => {
+    if (!entries[0].isIntersecting) pause();
+  }, { threshold: 0 });
+  playObserver.observe(shell);
+}
+function updateScroll() {
+  scrollPending = false;
+  const total = document.documentElement.scrollHeight - innerHeight;
+  document.documentElement.style.setProperty('--scroll', total > 0 ? Math.min(1, scrollY / total) : 0);
+  if (!reducedMotion.matches) document.documentElement.style.setProperty('--parallax', `${Math.min(50, scrollY * .1)}px`);
+}
+window.addEventListener('scroll', () => {
+  if (!scrollPending) { scrollPending = true; requestAnimationFrame(updateScroll); }
+}, { passive: true });
+reducedMotion.addEventListener('change', () => {
+  document.documentElement.classList.remove('motion-ready'); updateScroll();
+});
+updateBest(); updateSound(); updateScroll();
