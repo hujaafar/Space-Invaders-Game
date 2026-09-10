@@ -237,6 +237,18 @@ window.addEventListener('blur', () => { clearInput(); pause(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { clearInput(); pause(); } });
 
 document.querySelectorAll('[data-control]').forEach(button => {
+  const keyboardPointer = `keyboard:${button.dataset.control}`;
+  button.addEventListener('keydown', event => {
+    if (!['Space', 'Enter'].includes(event.code) || game.state !== 'playing') return;
+    event.preventDefault();
+    pointers.set(keyboardPointer, button.dataset.control); button.classList.add('is-held');
+  });
+  const releaseKeyboard = () => {
+    pointers.delete(keyboardPointer);
+    if (![...pointers.values()].includes(button.dataset.control)) button.classList.remove('is-held');
+  };
+  button.addEventListener('keyup', event => { if (['Space', 'Enter'].includes(event.code)) releaseKeyboard(); });
+  button.addEventListener('blur', releaseKeyboard);
   button.addEventListener('pointerdown', event => {
     if (game.state !== 'playing') return;
     event.preventDefault(); button.setPointerCapture(event.pointerId);
