@@ -1,0 +1,16 @@
+{
+  "name": "space-invaders-orbital-defense",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A cinematic, dependency-free DOM arcade game.",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "start": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "preview": "node scripts/serve.mjs dist",
+    "test": "node --test",
+    "check": "node --check appHandler.js && node --check src/engine.js && node --check src/audio.js && node --check src/storage.js && node --check scripts/build.mjs && node --check scripts/serve.mjs"
+  },
+  "engines": { "node": ">=22" }
+}
