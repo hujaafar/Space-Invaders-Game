@@ -30,3 +30,10 @@ test('settings persist without enabling sound implicitly', () => {
   assert.equal(storage.sound(), false); storage.saveSound(true); assert.equal(storage.sound(), true);
   storage.saveDifficulty('ace'); assert.equal(storage.difficulty(), 'ace');
 });
+
+test('failed writes take priority over stale readable storage values', () => {
+  const backend = { getItem: () => '100', setItem: () => { throw new Error('Quota'); } };
+  const storage = createStorage(() => backend);
+  storage.saveBest('pilot', 900); storage.saveBest('pilot', 200);
+  assert.equal(storage.best('pilot'), 900);
+});

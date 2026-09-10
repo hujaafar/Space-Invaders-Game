@@ -1,10 +1,15 @@
 /** Storage failures (private mode, quota, blocked cookies) must never prevent play. */
 export function createStorage(getStorage = () => globalThis.localStorage) {
   const session = new Map();
-  const read = (key) => { try { return getStorage().getItem(key) ?? session.get(key) ?? null; } catch { return session.get(key) ?? null; } };
+  const pending = new Set();
+  const read = (key) => {
+    if (pending.has(key)) return session.get(key);
+    try { return getStorage().getItem(key) ?? session.get(key) ?? null; } catch { return session.get(key) ?? null; }
+  };
   const write = (key, value) => {
     session.set(key, String(value));
-    try { getStorage().setItem(key, String(value)); return true; } catch { return false; }
+    try { getStorage().setItem(key, String(value)); pending.delete(key); return true; }
+    catch { pending.add(key); return false; }
   };
   return {
     best(difficulty) {
