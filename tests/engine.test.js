@@ -141,3 +141,8 @@ test('particle generation never consumes the enemy targeting random stream', () 
   game.start(); game.waveIntro = 0; game.burst(100, 100, '#fff', 30);
   assert.equal(calls, 0); game.enemyFire = 0; game.step(.01); assert.equal(calls, 1);
 });
+
+test('difficulty presets cannot be mutated by a consumer', () => {
+  assert.throws(() => { DIFFICULTIES.pilot.speed = 99; }, TypeError);
+  assert.equal(ready().config.speed, 1);
+});

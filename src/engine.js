@@ -1,9 +1,9 @@
 /** Pure simulation: no DOM, wall clock, audio, timers, or animation callbacks. */
 export const WORLD = Object.freeze({ width: 900, height: 490, waves: 5 });
 export const DIFFICULTIES = Object.freeze({
-  rookie: { speed: .75, fireRate: 1.4, bulletSpeed: .8, seconds: 90, score: .75, bossHP: 26 },
-  pilot: { speed: 1, fireRate: 1, bulletSpeed: 1, seconds: 75, score: 1, bossHP: 36 },
-  ace: { speed: 1.3, fireRate: .75, bulletSpeed: 1.2, seconds: 65, score: 1.5, bossHP: 46 },
+  rookie: Object.freeze({ speed: .75, fireRate: 1.4, bulletSpeed: .8, seconds: 90, score: .75, bossHP: 26 }),
+  pilot: Object.freeze({ speed: 1, fireRate: 1, bulletSpeed: 1, seconds: 75, score: 1, bossHP: 36 }),
+  ace: Object.freeze({ speed: 1.3, fireRate: .75, bulletSpeed: 1.2, seconds: 65, score: 1.5, bossHP: 46 }),
 });
 export const overlaps = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
