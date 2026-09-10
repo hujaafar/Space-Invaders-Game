@@ -373,3 +373,9 @@ nav { display: flex; gap: 36px; }
   .touch-controls { padding-bottom: 10px; }
   .touch-button { min-height: 44px; }
 }
+
+/* Auto margins center short dialogs without clipping tall content above the scroll area. */
+.game-overlay { display: flex; overflow-y: auto; overscroll-behavior: contain; }
+.overlay-content { flex-shrink: 0; margin: auto; }
+.result-stats { flex-wrap: wrap; }
+.hero-copy, .mission-copy, .manual-card { min-width: 0; }
