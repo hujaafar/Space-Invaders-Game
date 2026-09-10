@@ -1,6 +1,7 @@
 import { SpaceInvaders, WORLD } from './src/engine.js';
 import { ArcadeAudio } from './src/audio.js';
 import { createStorage } from './src/storage.js';
+import { ignoreGameShortcut } from './src/keyboard.js';
 
 const $ = (id) => document.getElementById(id);
 const game = new SpaceInvaders();
@@ -208,6 +209,7 @@ document.querySelectorAll('input[name="difficulty"]').forEach(radio => radio.add
 }));
 
 document.addEventListener('keydown', event => {
+  if (ignoreGameShortcut(event)) return;
   if (!overlay.hidden && event.code === 'Tab') {
     const controls = [...overlay.querySelectorAll('button:not([hidden])')];
     const first = controls[0], last = controls.at(-1);
