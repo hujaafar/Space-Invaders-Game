@@ -91,7 +91,7 @@ docs/                     Architecture, asset credits, manual QA guide
 .github/                  CI, bug report form, pull request template
 ```
 
-For deeper details, read [Architecture](docs/ARCHITECTURE.md), [Contributing](CONTRIBUTING.md), [Quality assurance](docs/QA.md), [Asset credits](docs/ASSETS.md), and [Changelog](CHANGELOG.md).
+For deeper details, read [Architecture](docs/ARCHITECTURE.md), [Contributing](CONTRIBUTING.md), [Quality assurance](docs/QA.md), [Troubleshooting](docs/TROUBLESHOOTING.md), [Asset credits](docs/ASSETS.md), and [Changelog](CHANGELOG.md).
 
 ## Deployment
 
