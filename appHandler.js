@@ -3,7 +3,15 @@ import { ArcadeAudio } from './src/audio.js';
 import { createStorage } from './src/storage.js';
 import { ignoreGameShortcut } from './src/keyboard.js';
 
-const $ = (id) => document.getElementById(id);
+const elements = new Map();
+const $ = id => {
+  if (!elements.has(id)) elements.set(id, document.getElementById(id));
+  return elements.get(id);
+};
+const setText = (element, value) => {
+  const next = String(value);
+  if (element.textContent !== next) element.textContent = next;
+};
 const game = new SpaceInvaders();
 const sound = new ArcadeAudio();
 const storage = createStorage();
@@ -29,15 +37,15 @@ const outsideDialog = [...document.querySelectorAll('.site-header, .flight-manua
 document.querySelector(`input[name="difficulty"][value="${difficulty}"]`).checked = true;
 sound.enabled = storage.sound();
 
-function announce(text) { $('announcer').textContent = text; }
+function announce(text) { setText($('announcer'), text); }
 function updateBest() {
-  $('personal-best').textContent = formatScore(best);
-  $('best-inline').textContent = `BEST ${formatScore(best)}`;
+  setText($('personal-best'), formatScore(best));
+  setText($('best-inline'), `BEST ${formatScore(best)}`);
 }
 function updateSound() {
   $('sound-toggle').setAttribute('aria-pressed', String(sound.enabled));
   $('sound-toggle').setAttribute('aria-label', `Turn sound ${sound.enabled ? 'off' : 'on'}`);
-  $('sound-label').textContent = `SOUND ${sound.enabled ? 'ON' : 'OFF'}`;
+  setText($('sound-label'), `SOUND ${sound.enabled ? 'ON' : 'OFF'}`);
 }
 function clearInput() {
   keys.clear(); pointers.clear();
@@ -84,12 +92,12 @@ function pause() {
   if (!game.pause()) return;
   clearInput(); stopClock();
   shell.dataset.state = game.state;
-  $('overlay-eyebrow').textContent = 'FLIGHT ON HOLD';
-  $('overlay-title').textContent = 'Take a breath.';
-  $('overlay-description').textContent = "Your ship is safe. Resume when you're ready.";
+  setText($('overlay-eyebrow'), 'FLIGHT ON HOLD');
+  setText($('overlay-title'), 'Take a breath.');
+  setText($('overlay-description'), "Your ship is safe. Resume when you're ready.");
   $('result-stats').hidden = true;
   $('resume-button').hidden = false;
-  $('restart-button').textContent = 'Restart mission';
+  setText($('restart-button'), 'Restart mission');
   setDialog(true);
   $('resume-button').focus({ preventScroll: true });
   announce('Mission paused.');
@@ -117,14 +125,14 @@ function results(won) {
   const previousBest = best;
   best = Math.max(best, storage.saveBest(difficulty, game.score));
   updateBest();
-  $('overlay-eyebrow').textContent = game.score > previousBest ? 'NEW PERSONAL BEST' : won ? 'TRANSMISSION RECEIVED' : 'SIGNAL LOST';
-  $('overlay-title').textContent = won ? 'Earth is still ours.' : 'Not your last flight.';
-  $('overlay-description').textContent = won ? 'Mothership destroyed. Five waves cleared. Welcome home, Commander.' : game.reason;
-  $('result-score').textContent = game.score.toLocaleString();
-  $('result-accuracy').textContent = `${game.accuracy}%`;
-  $('result-wave').textContent = `${game.wave} / ${WORLD.waves}`;
+  setText($('overlay-eyebrow'), game.score > previousBest ? 'NEW PERSONAL BEST' : won ? 'TRANSMISSION RECEIVED' : 'SIGNAL LOST');
+  setText($('overlay-title'), won ? 'Earth is still ours.' : 'Not your last flight.');
+  setText($('overlay-description'), won ? 'Mothership destroyed. Five waves cleared. Welcome home, Commander.' : game.reason);
+  setText($('result-score'), game.score.toLocaleString());
+  setText($('result-accuracy'), `${game.accuracy}%`);
+  setText($('result-wave'), `${game.wave} / ${WORLD.waves}`);
   $('result-stats').hidden = false; $('resume-button').hidden = true;
-  $('restart-button').textContent = 'Fly again ↗';
+  setText($('restart-button'), 'Fly again ↗');
   setDialog(true); $('restart-button').focus({ preventScroll: true });
   announce(`${won ? 'Mission accomplished' : 'Mission ended'}. Score ${game.score}. Wave ${game.wave}. Accuracy ${game.accuracy} percent.`);
 }
@@ -143,14 +151,14 @@ function handleEvents() {
 
 function render() {
   shell.dataset.state = game.state;
-  $('score').textContent = formatScore(game.score);
-  $('wave').firstChild.textContent = `${String(game.wave).padStart(2, '0')} `;
-  $('timer').textContent = String(Math.ceil(game.remaining)).padStart(2, '0');
-  $('lives').textContent = [0, 1, 2].map(index => index < game.lives ? '▰' : '▱').join(' ');
+  setText($('score'), formatScore(game.score));
+  setText($('wave').firstChild, `${String(game.wave).padStart(2, '0')} `);
+  setText($('timer'), String(Math.ceil(game.remaining)).padStart(2, '0'));
+  setText($('lives'), [0, 1, 2].map(index => index < game.lives ? '▰' : '▱').join(' '));
   $('lives').setAttribute('aria-label', `${game.lives} lives`);
-  $('combo').textContent = game.multiplier > 1 ? `${game.multiplier}× COMBO · ${game.streak} HIT CHAIN` : 'SYSTEMS NOMINAL';
-  $('shield-status').textContent = game.shieldTime > 0 ? 'SHIELD ACTIVE' : game.shieldCooldown > 0 ? `SHIELD CHARGING · ${Math.ceil(game.shieldCooldown)}s` : 'SHIELD READY · SHIFT';
-  $('wave-announcement').textContent = game.state === 'wave-clear' ? `WAVE ${game.wave} CLEARED` : game.waveIntro > 0 ? game.wave === 5 ? 'MOTHERSHIP INBOUND' : `WAVE 0${game.wave} / DEFEND EARTH` : '';
+  setText($('combo'), game.multiplier > 1 ? `${game.multiplier}× COMBO · ${game.streak} HIT CHAIN` : 'SYSTEMS NOMINAL');
+  setText($('shield-status'), game.shieldTime > 0 ? 'SHIELD ACTIVE' : game.shieldCooldown > 0 ? `SHIELD CHARGING · ${Math.ceil(game.shieldCooldown)}s` : 'SHIELD READY · SHIFT');
+  setText($('wave-announcement'), game.state === 'wave-clear' ? `WAVE ${game.wave} CLEARED` : game.waveIntro > 0 ? game.wave === 5 ? 'MOTHERSHIP INBOUND' : `WAVE 0${game.wave} / DEFEND EARTH` : '');
   $('boss-meter').hidden = !game.boss;
   if (game.boss) $('boss-health').style.width = `${game.boss.hp / game.boss.maxHP * 100}%`;
 
