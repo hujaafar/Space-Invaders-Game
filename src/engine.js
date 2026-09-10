@@ -120,7 +120,7 @@ export class SpaceInvaders {
   }
 
   fire() {
-    if (this.fireCooldown > 0) return;
+    if (this.state !== 'playing' || this.waveIntro > 0 || this.fireCooldown > 0) return;
     this.fireCooldown = .18;
     this.shots++;
     this.bullets.push(this.entity({ kind: 'laser', owner: 'player', x: this.player.x + 14, y: this.player.y - 12, w: 4, h: 15, vx: 0, vy: -700 }));

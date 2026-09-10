@@ -146,3 +146,10 @@ test('difficulty presets cannot be mutated by a consumer', () => {
   assert.throws(() => { DIFFICULTIES.pilot.speed = 99; }, TypeError);
   assert.equal(ready().config.speed, 1);
 });
+
+test('fire is inert in idle, introduction, pause, and terminal states', () => {
+  const game = new SpaceInvaders(); game.fire(); assert.equal(game.bullets.length, 0);
+  game.start(); game.fire(); assert.equal(game.shots, 0);
+  game.waveIntro = 0; game.pause(); game.fire(); assert.equal(game.shots, 0);
+  game.resume(); game.finish(false); game.fire(); assert.equal(game.shots, 0);
+});
