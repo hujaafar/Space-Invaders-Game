@@ -250,7 +250,7 @@ document.querySelectorAll('[data-control]').forEach(button => {
   button.addEventListener('keyup', event => { if (['Space', 'Enter'].includes(event.code)) releaseKeyboard(); });
   button.addEventListener('blur', releaseKeyboard);
   button.addEventListener('pointerdown', event => {
-    if (game.state !== 'playing') return;
+    if (game.state !== 'playing' || (event.pointerType === 'mouse' && event.button !== 0)) return;
     event.preventDefault(); button.setPointerCapture(event.pointerId);
     pointers.set(event.pointerId, button.dataset.control); button.classList.add('is-held');
   });
@@ -261,6 +261,7 @@ document.querySelectorAll('[data-control]').forEach(button => {
   button.addEventListener('pointerup', release);
   button.addEventListener('pointercancel', release);
   button.addEventListener('lostpointercapture', release);
+  button.addEventListener('contextmenu', event => event.preventDefault());
 });
 
 const resizeObserver = new ResizeObserver(() => {
