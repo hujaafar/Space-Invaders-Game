@@ -44,3 +44,11 @@ test('HEAD reports the GET length without a body and mutations are rejected', as
   const post = await fetch(url, { method: 'POST', body: 'ignored' });
   assert.equal(post.status, 405); assert.equal(post.headers.get('allow'), 'GET, HEAD');
 });
+
+test('invalid preview ports fail before starting a server', async () => {
+  const { execFile } = await import('node:child_process');
+  const { promisify } = await import('node:util');
+  const script = new URL('../scripts/serve.mjs', import.meta.url);
+  const { fileURLToPath } = await import('node:url');
+  await assert.rejects(promisify(execFile)(process.execPath, [fileURLToPath(script)], { env: { ...process.env, PORT: '70000' } }), error => error.code === 1 && error.stderr.includes('PORT must be'));
+});
