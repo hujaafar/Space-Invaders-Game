@@ -1,5 +1,6 @@
 /** Storage failures (private mode, quota, blocked cookies) must never prevent play. */
 export function createStorage(getStorage = () => globalThis.localStorage) {
+  const normalizeDifficulty = value => ['rookie', 'pilot', 'ace'].includes(value) ? value : 'pilot';
   const session = new Map();
   const pending = new Set();
   const read = (key) => {
@@ -13,17 +14,17 @@ export function createStorage(getStorage = () => globalThis.localStorage) {
   };
   return {
     best(difficulty) {
-      const value = Number(read(`orbital.best.${difficulty}`));
+      const value = Number(read(`orbital.best.${normalizeDifficulty(difficulty)}`));
       return Number.isSafeInteger(value) && value >= 0 ? value : 0;
     },
     saveBest(difficulty, score) {
       const best = Math.max(this.best(difficulty), Number.isSafeInteger(score) && score >= 0 ? score : 0);
-      write(`orbital.best.${difficulty}`, best);
+      write(`orbital.best.${normalizeDifficulty(difficulty)}`, best);
       return best;
     },
     sound: () => read('orbital.sound') === 'true',
-    saveSound: (enabled) => write('orbital.sound', enabled),
+    saveSound: (enabled) => write('orbital.sound', enabled === true),
     difficulty: () => { const value = read('orbital.difficulty'); return ['rookie', 'pilot', 'ace'].includes(value) ? value : 'pilot'; },
-    saveDifficulty: (value) => write('orbital.difficulty', value),
+    saveDifficulty: (value) => write('orbital.difficulty', normalizeDifficulty(value)),
   };
 }

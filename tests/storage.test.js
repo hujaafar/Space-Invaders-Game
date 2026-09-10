@@ -37,3 +37,10 @@ test('failed writes take priority over stale readable storage values', () => {
   storage.saveBest('pilot', 900); storage.saveBest('pilot', 200);
   assert.equal(storage.best('pilot'), 900);
 });
+
+test('invalid settings cannot create arbitrary score buckets or enable sound', () => {
+  const backend = memory(), storage = createStorage(() => backend);
+  storage.saveBest('unexpected', 120); assert.equal(storage.best('pilot'), 120);
+  storage.saveDifficulty('unexpected'); assert.equal(storage.difficulty(), 'pilot');
+  storage.saveSound('true'); assert.equal(storage.sound(), false);
+});
