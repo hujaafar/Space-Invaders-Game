@@ -14,6 +14,7 @@ export class ArcadeAudio {
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return;
+      if (this.context?.state === 'closed') { this.context = null; this.master = null; this.voices.clear(); }
       this.context ||= new AudioContext();
       if (!this.master) { this.master = this.context.createGain(); this.master.connect(this.context.destination); }
       this.syncMute();
