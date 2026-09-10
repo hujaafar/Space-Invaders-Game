@@ -12,6 +12,9 @@ export function createPreviewServer(directory) {
   const root = path.resolve(directory);
   return http.createServer(async (req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
+    if (!['GET', 'HEAD'].includes(req.method)) {
+      res.writeHead(405, { Allow: 'GET, HEAD' }); res.end('Method not allowed'); return;
+    }
     try {
       const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
       const file = path.resolve(root, '.' + (pathname === '/' ? '/index.html' : pathname));
@@ -21,8 +24,8 @@ export function createPreviewServer(directory) {
       const [realRoot, realFile] = await Promise.all([realpath(root), realpath(file)]);
       if (!inside(realRoot, realFile) || !(await stat(realFile)).isFile()) throw new Error('Unavailable file');
       const body = await readFile(realFile);
-      res.writeHead(200, { 'Content-Type': types[path.extname(realFile)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
-      res.end(body);
+      res.writeHead(200, { 'Content-Type': types[path.extname(realFile)] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'Content-Length': body.length });
+      res.end(req.method === 'HEAD' ? undefined : body);
     } catch {
       res.writeHead(404); res.end('Not found');
     }

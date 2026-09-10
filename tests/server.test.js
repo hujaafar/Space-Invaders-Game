@@ -35,3 +35,12 @@ test('a junction to an outside directory cannot expose its contents', async t =>
   await symlink(secret, path.join(root, 'escape'), 'junction');
   assert.equal((await fetch(url + '/escape/secret.txt')).status, 404);
 });
+
+test('HEAD reports the GET length without a body and mutations are rejected', async t => {
+  const { url } = await fixture(t);
+  const get = await fetch(url), head = await fetch(url, { method: 'HEAD' });
+  assert.equal(head.status, 200); assert.equal(head.headers.get('content-length'), get.headers.get('content-length'));
+  assert.equal(await head.text(), '');
+  const post = await fetch(url, { method: 'POST', body: 'ignored' });
+  assert.equal(post.status, 405); assert.equal(post.headers.get('allow'), 'GET, HEAD');
+});
