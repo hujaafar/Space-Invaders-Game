@@ -170,14 +170,14 @@ function render() {
     let node = nodes.get(object.id);
     if (!node) {
       node = document.createElement('div');
+      node.style.width = `${object.w / WORLD.width * 100}%`;
+      node.style.height = `${object.h / WORLD.height * 100}%`;
       nodes.set(object.id, node); $('entities').append(node);
     }
     let className = `entity ${object.kind} ${object.type || ''}`;
     if (object.kind === 'player' && (game.shieldTime > 0 || game.invulnerable > 0)) className += ' protected';
     if (object.kind === 'enemy' && object.hp > 1) className += ' armored';
     if (node.className !== className) node.className = className;
-    node.style.width = `${object.w / WORLD.width * 100}%`;
-    node.style.height = `${object.h / WORLD.height * 100}%`;
     node.style.transform = `translate3d(${object.x / WORLD.width * fieldWidth}px, ${object.y / WORLD.height * fieldHeight}px, 0)`;
     if (object.kind === 'particle') {
       node.style.setProperty('--particle-color', object.color);
