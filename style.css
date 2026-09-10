@@ -379,3 +379,12 @@ nav { display: flex; gap: 36px; }
 .overlay-content { flex-shrink: 0; margin: auto; }
 .result-stats { flex-wrap: wrap; }
 .hero-copy, .mission-copy, .manual-card { min-width: 0; }
+
+@media (forced-colors: active) {
+  .button, .touch-button, .icon-button, .sound-button, .manual-card, .game-shell { border: 1px solid ButtonText; }
+  .hero-copy h1 span { color: CanvasText; -webkit-text-stroke: 0; }
+  .difficulty-picker input:checked + span { background: Highlight; color: HighlightText; }
+  .entity, .space-art { forced-color-adjust: none; }
+  .scroll-progress, .status-dot { background: Highlight; }
+  .game-overlay { background: Canvas; }
+}
