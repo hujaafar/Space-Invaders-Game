@@ -1,5 +1,6 @@
 import { cp, mkdir, mkdtemp, rm, readFile, stat, rename } from 'node:fs/promises';
 import path from 'node:path';
+import { validateSite } from './validate-site.mjs';
 
 export async function buildSite(directory) {
   const root = path.resolve(directory);
@@ -21,6 +22,7 @@ export async function buildSite(directory) {
     }
     const html = await readFile(path.join(stage, 'index.html'), 'utf8');
     if (!html.includes('id="launch-button"')) throw new Error('Game entry point missing');
+    await validateSite(stage);
     let backedUp = false;
     try { await rename(out, backup); backedUp = true; } catch (error) { if (error.code !== 'ENOENT') throw error; }
     try { await rename(stage, out); installed = true; }

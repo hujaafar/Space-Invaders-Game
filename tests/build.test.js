@@ -29,3 +29,10 @@ test('a valid build replaces old output and does not package repository files', 
   assert.ok(!(await readdir(path.join(root, 'dist'))).includes('.env'));
   assert.ok(!(await readdir(root)).some(file => file.startsWith('.build-')));
 });
+
+test('a broken nested module import fails the build before replacing dist', async t => {
+  const root = await fixture(t);
+  await writeFile(path.join(root, 'src/engine.js'), "import { missing } from './missing.js';");
+  await assert.rejects(buildSite(root));
+  assert.equal(await readFile(path.join(root, 'dist/index.html'), 'utf8'), 'Previous good build');
+});
