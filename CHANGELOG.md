@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.1 — 2026-09-10
+
+- Correct continuous collision detection for diagonal mothership shots and isolate cosmetic randomness from enemy targeting.
+- Guard the firing API, protect difficulty presets, and release mission entities when returning to the hangar.
+- Retain the latest scores after storage quota failures and normalize settings before writing them.
+- Preserve browser keyboard shortcuts; make on-screen controls keyboard operable; prevent accidental secondary-click input.
+- Cancel queued audio on mute, limit simultaneous voices, and recover closed audio contexts.
+- Reduce repeated HUD and sprite style work; improve landscape layouts, enlarged dialogs, forced colors, navigation semantics, and boss health announcements.
+- Contain preview-server symlinks, support HEAD requests, reject mutation methods, and report startup problems clearly.
+- Stage and validate builds before replacing previous output; verify nested module and asset references.
+- Extend syntax checks to all JavaScript files and add Node 24 to CI.
+- Add regression coverage and practical troubleshooting documentation. Browser/device QA remains a separate manual check.
+
 ## 2.0.0 — 2026-09-10
 
 ### Presentation

@@ -6,7 +6,7 @@ Run `npm run check`, `npm test`, and `npm run build`.
 
 The regression suite covers restart state, pause/resume (including transitions), time-based movement and boundaries, fire cadence, swept collisions, armor, shield expiry and recharge, hit invulnerability, defeat, timeout, perimeter breach, combo limits, formation movement, firing columns, progression to victory, corrupt storage, storage failure, asset references, UI IDs, and font signatures.
 
-CI runs these checks on Node 22 under both Windows and Linux. An HTTP smoke check can be performed against `npm run dev` or `npm run preview`.
+CI runs these checks on Node 22 under Windows and Linux, and Node 24 under Linux. Additional regression coverage checks diagonal collisions, keyboard shortcut filtering, queued audio cleanup, storage write failures, preview-server containment, and staged build recovery. An HTTP smoke check can be performed against `npm run dev` or `npm run preview`.
 
 ## Manual browser checklist
 

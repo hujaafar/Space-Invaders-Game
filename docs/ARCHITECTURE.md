@@ -6,9 +6,11 @@ The game remains vanilla HTML, CSS, and JavaScript with DOM sprites. There is no
 
 | File | Responsibility |
 | --- | --- |
+| `src/collision.js` | Continuous projectile contact along both axes |
+| `src/keyboard.js` | Browser-shortcut and editable-target handling |
 | `src/engine.js` | Pure simulation, collisions, scoring, shields, waves, state transitions |
 | `appHandler.js` | Input, fixed-step animation loop, DOM rendering, focus, overlays, scroll effects |
-| `src/audio.js` | One lazily created Web Audio context and short synthesized effects |
+| `src/audio.js` | One reusable Web Audio context, bounded voices, and short synthesized effects |
 | `src/storage.js` | Validated, failure-tolerant local storage |
 | `style.css` | Design tokens, layout, sprite appearance, responsive and motion preferences |
 | `scripts/serve.mjs` | Local HTTP preview, bound to the loopback interface |
@@ -38,7 +40,7 @@ paused / won / gameover → hangar → idle
 
 ## Collision and fairness
 
-Player lasers use swept vertical bounds between their old and new positions. This prevents high-speed bullets from skipping thin targets. If a laser overlaps more than one target, the lowest target is hit first. A projectile is consumed on one hit. Enemy shots are consumed by shields and temporary hit protection as well as by unprotected hull collisions.
+Projectiles use continuous slab intersection between their old and new positions along both axes. This prevents high-speed bullets from skipping thin targets. If a laser crosses more than one target, the first target along its path is hit first. A projectile is consumed on one hit. Enemy shots are consumed by shields and temporary hit protection as well as by unprotected hull collisions.
 
 Taking damage grants 1.6 seconds of invulnerability. Shields last two seconds and recharge ten seconds from activation. Formation bounds use only surviving invaders. Only the lowest invader in each column may shoot.
 
@@ -53,3 +55,9 @@ Sound is off on a first visit. A saved sound preference is restored, but audio p
 Keyboard and multi-pointer touch input share the same input state. Pointer cancellation, loss of capture, blur, pause, and restart clear held inputs. Pausing or showing results moves focus into the dialog, makes surrounding content inert, and contains Tab navigation. Returning to play restores battlefield focus.
 
 Reduced motion disables parallax, chapter animation, screen shake, and cosmetic particles. Status announcements cover wave changes, hull damage, pause, and results. The visual reflex-based game is not a fully nonvisual game; the menu and manual remain semantic and keyboard operable.
+
+## Build integrity
+
+`scripts/check.mjs` discovers all application, source, script, and test modules. `scripts/build-site.mjs` assembles an isolated staging directory and calls `scripts/validate-site.mjs` to verify HTML/CSS references and nested JavaScript imports. Only a validated build replaces `dist/`; a previous build is restored if installation fails. Temporary build cleanup is restricted to owned directories immediately under the project root.
+
+The preview HTTP implementation lives in `scripts/server.mjs`; startup and configuration live in `scripts/serve.mjs`. Requests are restricted to GET/HEAD and are checked against both lexical paths and real filesystem paths, including junctions on Windows.
